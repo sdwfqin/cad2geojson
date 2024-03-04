@@ -44,7 +44,7 @@ public class GdalMain {
 
 //        cadToGeoJson("opt/test.dwg", "opt/dwg.geojson");
         String absolutePath = new File("opt/test.dxf").getAbsolutePath();
-        cadToGeoJson("absolutePath", "opt/dxf.geojson");
+        cadToGeoJson(absolutePath, "opt/dxf.geojson");
     }
 
     /**
