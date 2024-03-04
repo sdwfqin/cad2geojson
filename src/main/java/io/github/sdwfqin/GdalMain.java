@@ -21,7 +21,7 @@ import java.nio.file.Files;
 
 /**
  * <p>
- *     使用Gdal库进行转换
+ * 使用Gdal库进行转换
  * </p>
  *
  * @author zhangqin
@@ -43,14 +43,15 @@ public class GdalMain {
         ogr.RegisterAll();
 
 //        cadToGeoJson("opt/test.dwg", "opt/dwg.geojson");
-        cadToGeoJson("opt/test.dxf", "opt/dxf.geojson");
+        String absolutePath = new File("opt/test.dxf").getAbsolutePath();
+        cadToGeoJson("absolutePath", "opt/dxf.geojson");
     }
 
     /**
      * cad/dxf转换geojson
      */
     public static void cadToGeoJson(String cadFile, String geoJsonFile) {
-        // An encoding name supported by CPLRecode() (i.e. an iconv name), not a DXF $DWGCODEPAGE name. Using a value "UTF-8" will avoid any attempt to recode the text as it is read.
+        gdal.SetConfigOption("DXF_FEATURE_LIMIT_PER_BLOCK", "-1");
         gdal.SetConfigOption("DXF_ENCODING", "UTF-8");
         //打开数据
         DataSource ds = ogr.Open(cadFile, 0);
@@ -120,17 +121,23 @@ public class GdalMain {
             JSONObject item = features.getJSONObject(i);
             JSONObject geometry = item.getJSONObject("geometry");
             JSONArray coordinates = geometry.getJSONArray("coordinates");
-            if (geometry.getString("type").equals("Point")) {
-                transformGeoJsonNode(coordinates, transform);
-            } else {
-                for (int i1 = 0; i1 < coordinates.size(); i1++) {
-                    transformGeoJsonNode(coordinates.getJSONArray(i1), transform);
-                }
-            }
+            forGeoJsonNode(coordinates, transform);
         }
         FileWriter writer = new FileWriter(userDir + File.separator + geoJsonFileName);
         writer.write(rootJsonObject.toString());
         log.info("坐标转换成功！");
+    }
+
+    public static void forGeoJsonNode(JSONArray jsonArray, CoordinateTransform transform) {
+        for (int i = 0; i < jsonArray.size(); i++) {
+            if (jsonArray.get(i) instanceof JSONArray) {
+                forGeoJsonNode((JSONArray) jsonArray.get(i), transform);
+            } else {
+                transformGeoJsonNode(jsonArray, transform);
+                break;
+            }
+        }
+
     }
 
     public static void transformGeoJsonNode(JSONArray jsonArray, CoordinateTransform transform) {
@@ -138,7 +145,13 @@ public class GdalMain {
         if (jsonArray.getDouble(0).intValue() >= 10000000) {
             x = x - 38000000;
         }
-        ProjCoordinate sourceCoordinate = new ProjCoordinate(x, jsonArray.getDouble(1), jsonArray.getDouble(2));
+        Double z = 0.0;
+        try {
+            z = jsonArray.getDouble(2);
+        } catch (Exception ignored) {
+
+        }
+        ProjCoordinate sourceCoordinate = new ProjCoordinate(x, jsonArray.getDouble(1), z);
         ProjCoordinate targetCoordinate = new ProjCoordinate();
         transform.transform(sourceCoordinate, targetCoordinate);
 
