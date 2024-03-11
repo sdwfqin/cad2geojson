@@ -30,7 +30,7 @@ import java.nio.file.Files;
 public class GdalMain {
 
     private static final String PROJ4_FROM = "+proj=tmerc +lat_0=0 +lon_0=114 +k=1 +x_0=3800000 +y_0=0 +ellps=krass +units=m +no_defs";
-    private static final String PROJ4_TO = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs";
+    private static final String PROJ4_TO = "+proj=longlat +datum=WGS84 +no_defs";
     private static final boolean PROJ4_ENABLE = true;
 
     private static final Log log = LogFactory.get();
@@ -141,17 +141,13 @@ public class GdalMain {
     }
 
     public static void transformGeoJsonNode(JSONArray jsonArray, CoordinateTransform transform) {
-        Double x = jsonArray.getDouble(0);
-        if (jsonArray.getDouble(0).intValue() >= 10000000) {
-            x = x - 38000000;
-        }
         Double z = 0.0;
         try {
             z = jsonArray.getDouble(2);
         } catch (Exception ignored) {
 
         }
-        ProjCoordinate sourceCoordinate = new ProjCoordinate(x, jsonArray.getDouble(1), z);
+        ProjCoordinate sourceCoordinate = new ProjCoordinate(jsonArray.getDouble(0), jsonArray.getDouble(1), z);
         ProjCoordinate targetCoordinate = new ProjCoordinate();
         transform.transform(sourceCoordinate, targetCoordinate);
 
